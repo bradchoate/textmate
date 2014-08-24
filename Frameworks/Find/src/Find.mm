@@ -720,6 +720,37 @@ NSString* const FFFindWasTriggeredByEnter = @"FFFindWasTriggeredByEnter";
 	}
 }
 
+- (void)takeSearchResultToRemoveFrom:(id)sender
+{
+	if([sender respondsToSelector:@selector(objectValue)] && [[sender objectValue] isKindOfClass:[FFResultNode class]])
+	{
+		FFResultNode* item = [sender objectValue];
+
+		NSUInteger index = [item.parent.matches indexOfObject:item];
+		if(index == NSNotFound)
+			return;
+
+		_countOfMatches -= [item.matches count];
+		for(FFResultNode* child in item.matches)
+			_countOfExcludedMatches -= child.exclude ? 1 : 0;
+		[item removeFromParent];
+		[self updateActionButtons:self];
+
+		NSString* fmt = MSG_SHOWING_ZERO_MATCHES_FMT;
+		switch(_countOfMatches)
+		{
+			case 0:  fmt = MSG_SHOWING_ZERO_MATCHES_FMT;     break;
+			case 1:  fmt = MSG_SHOWING_ONE_MATCH_FMT;        break;
+			default: fmt = MSG_SHOWING_MULTIPLE_MATCHES_FMT; break;
+		}
+		_windowController.statusString = [NSString stringWithFormat:fmt, [_documentSearch searchString], [NSNumberFormatter localizedStringFromNumber:@(_countOfMatches) numberStyle:NSNumberFormatterDecimalStyle]];
+
+		[_windowController.resultsOutlineView beginUpdates];
+		[_windowController.resultsOutlineView removeItemsAtIndexes:[NSIndexSet indexSetWithIndex:index] inParent:nil withAnimation:NSTableViewAnimationSlideDown];
+		[_windowController.resultsOutlineView endUpdates];
+	}
+}
+
 - (void)observeValueForKeyPath:(NSString*)keyPath ofObject:(id)object change:(NSDictionary*)change context:(void*)context
 {
 	if([keyPath isEqualToString:@"currentPath"])
